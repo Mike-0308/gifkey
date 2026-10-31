@@ -1,0 +1,25 @@
+services:
+  gifkey:
+    build:
+      context: .
+      args:
+        # 国内 NAS 直接走镜像源，避免 pip 拉超时
+        PIP_INDEX: https://mirrors.huaweicloud.com/repository/pypi/simple
+    image: gifkey:1.1
+    container_name: gifkey
+    restart: unless-stopped
+    ports:
+      - "8849:8849"
+    volumes:
+      # 输出的成品存到宿主机的 ./output，容器重建不丢
+      - ./output:/app/output
+    environment:
+      - TZ=Asia/Shanghai
+      # 想换端口就改这里，同时把上面 ports 的左边也改掉
+      - GIFKEY_PORT=8849
+    # 大素材（例如 300 帧 800×1076）读进内存要 1GB 上下，
+    # 不要把内存上限设得太小，否则会被 OOM 杀掉
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 4g

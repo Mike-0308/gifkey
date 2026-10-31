@@ -1,0 +1,14 @@
+# 构建镜像时排除，别把本地的虚拟环境和素材烤进镜像
+.venv/
+work/
+output/
+__pycache__/
+*.pyc
+*.pyo
+*.bat
+.git/
+.gitignore
+README*.md
+docker-compose.yml
+Dockerfile
+.dockerignore

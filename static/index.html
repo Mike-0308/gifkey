@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GIF 去背景 · 纯色抠像</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="app">
+
+  <header class="hd">
+    <div class="brand">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="2.5" y="4.5" width="19" height="15" rx="3" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M7 15.5 11 9l3.2 4.4L16.5 11l2.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="brand-txt">
+        <h1>GIF 去背景</h1>
+        <p>逐帧抠掉纯色背景，默认 #00ff00 · 全部在本机完成</p>
+      </div>
+    </div>
+    <button id="btnQuit" class="ghost" title="关闭本地服务">退出</button>
+  </header>
+
+  <section id="drop" class="drop">
+    <div class="drop-inner">
+      <svg class="drop-icon" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <rect x="7" y="10" width="34" height="28" rx="5" stroke="currentColor" stroke-width="2.2"/>
+        <circle cx="17" cy="20" r="3" stroke="currentColor" stroke-width="2.2"/>
+        <path d="M13 34l8-9 6 6.5 4-3.5 5 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <p class="drop-main">把 GIF 拖到这里</p>
+      <p class="drop-sub">或者 <span class="link">点击选择文件</span> · 支持 gif / webp / png / jpg</p>
+    </div>
+    <input type="file" id="fileInput" accept=".gif,.webp,.png,.jpg,.jpeg,.bmp,image/*" hidden>
+  </section>
+
+  <section id="studio" class="hidden">
+    <div class="meta-row">
+      <div class="fname" id="fName">—</div>
+      <button id="btnClear" class="ghost small">换一个</button>
+    </div>
+    <div class="meta-chips" id="chips"></div>
+
+    <div class="panels">
+      <figure class="panel">
+        <div class="canvas checker"><img id="imgSrc" alt="原图"></div>
+        <figcaption><span class="dot"></span>原图</figcaption>
+      </figure>
+      <figure class="panel">
+        <div class="canvas checker"><img id="imgOut" alt="处理后"><span id="outHint" class="hint">调好参数后点「去背景」</span></div>
+        <figcaption><span class="dot ok"></span><span id="outCap">结果</span></figcaption>
+      </figure>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <label class="lab">背景色</label>
+        <div class="color-line">
+          <input type="color" id="colorPicker" value="#00ff00">
+          <input type="text" id="colorHex" value="#00ff00" spellcheck="false" maxlength="7">
+          <button id="btnPick" class="ghost small" title="用画面边缘最常见的颜色">吸取边缘色</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <label class="lab">容差 <em id="tolVal">45</em></label>
+        <input type="range" id="tol" min="0" max="200" value="45">
+      </div>
+
+      <div class="row">
+        <label class="lab">边缘羽化 <em id="softVal">20</em></label>
+        <input type="range" id="soft" min="1" max="120" value="20">
+      </div>
+
+      <div class="row inline">
+        <div class="switches">
+          <label class="switch"><input type="checkbox" id="despill" checked><span>去除背景色反光</span></label>
+          <label class="switch"><input type="checkbox" id="shrink"><span>边缘内缩 1px</span></label>
+        </div>
+      </div>
+
+      <div class="row">
+        <label class="lab">输出格式</label>
+        <div class="seg" id="fmtSeg">
+          <label class="seg-item is-active" data-fmt="gif">
+            <input type="radio" name="fmt" value="gif" checked>
+            <b>GIF</b><span>1 位透明，兼容性最好</span>
+          </label>
+          <label class="seg-item" data-fmt="webp">
+            <input type="radio" name="fmt" value="webp">
+            <b>WebP</b><span>平滑半透明，体积更小</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="row">
+        <label class="lab">体积优化</label>
+        <div class="seg four" id="tierSeg">
+          <label class="seg-item is-active" data-tier="original">
+            <input type="radio" name="tier" value="original" checked>
+            <b>原画质</b><span>每帧 256 色</span>
+          </label>
+          <label class="seg-item" data-tier="standard">
+            <input type="radio" name="tier" value="standard">
+            <b>标准</b><span>共用调色板</span>
+          </label>
+          <label class="seg-item" data-tier="strong">
+            <input type="radio" name="tier" value="strong">
+            <b>强力</b><span>96 色</span>
+          </label>
+          <label class="seg-item" data-tier="max">
+            <input type="radio" name="tier" value="max">
+            <b>极限</b><span>64 色 15fps</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="row">
+        <label class="lab">画面尺寸</label>
+        <div class="seg four" id="scaleSeg">
+          <label class="seg-item is-active" data-scale="1">
+            <input type="radio" name="scale" value="1" checked>
+            <b>原尺寸</b><span>不缩放</span>
+          </label>
+          <label class="seg-item" data-scale="0.75">
+            <input type="radio" name="scale" value="0.75">
+            <b>75%</b><span>略小</span>
+          </label>
+          <label class="seg-item" data-scale="0.5">
+            <input type="radio" name="scale" value="0.5">
+            <b>50%</b><span>一半</span>
+          </label>
+          <label class="seg-item" data-scale="0.35">
+            <input type="radio" name="scale" value="0.35">
+            <b>35%</b><span>缩略图</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="actions">
+        <span class="tip">放大看边缘：预览会跟着参数实时刷新（第 1 帧）</span>
+        <button id="btnRun" class="primary">去背景</button>
+      </div>
+    </div>
+
+    <section id="running" class="card hidden">
+      <div class="prog-head">
+        <span id="stageText">准备中…</span>
+        <span id="pctText" class="pct">0%</span>
+      </div>
+      <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+    </section>
+
+    <section id="result" class="card hidden">
+      <div class="res-head">
+        <h2>处理完成</h2>
+        <span class="muted" id="resInfo"></span>
+      </div>
+      <div class="res-actions">
+        <a id="dl" class="primary" href="#" download>下载文件</a>
+        <button id="btnFolder" class="ghost">打开输出文件夹</button>
+        <button id="btnAgain" class="ghost">换个参数再来</button>
+      </div>
+      <p class="fine" id="resNote"></p>
+    </section>
+  </section>
+
+  <div id="error" class="alert hidden"></div>
+
+  <footer class="ft">
+    <span>输出目录 <code id="outDir">—</code></span>
+  </footer>
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>
