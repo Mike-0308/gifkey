@@ -7,6 +7,9 @@ __pycache__/
 work/
 output/
 
+# 打包产物（放 Release 里，不进仓库）
+dist/
+
 # 系统杂项
 .DS_Store
 Thumbs.db

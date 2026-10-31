@@ -246,12 +246,35 @@ compose 里已设 `TZ=Asia/Shanghai`，文件名按 UTF-8 传输。如果宿主�
 
 ---
 
-## 七、Windows 本地版
+## 七、Windows 版
 
-双击 `GIF去背景.bat` 即用，逻辑与容器版完全一致（同一份代码）。
-`安装依赖.bat` 会在项目下建 `.venv` 并装 `requirements.txt` 里的依赖。
+### 直接下载打包好的
 
-`诊断启动.bat` 用于排查启动失败，会把 Python 版本、依赖状态、端口占用情况打出来。
+| 站点 | 下载地址 |
+|---|---|
+| **Gitee**（国内快） | https://gitee.com/jxmike/gifkey/releases/download/v1.1/gifkey-windows-v1.1.zip |
+| **GitHub** | https://github.com/Mike-0308/gifkey/releases/download/v1.1/gifkey-windows-v1.1.zip |
+
+包很小（25KB），里面是源码 + 三个 bat + 说明，不含 Python 依赖 —— 那些第一次运行时自己下。
+
+解压后三步：
+
+1. 双击 **`安装依赖.bat`**（只有第一次需要，联网下约 80MB，1~2 分钟）
+2. 双击 **`GIF去背景.bat`**，浏览器会自动打开页面
+3. 用完点网页里的「退出」，或直接关掉命令行窗口
+
+前提：装过 Python 3.10 或更高版本（https://www.python.org/downloads/ ），
+安装时务必勾选 **“Add python.exe to PATH”**，否则 `安装依赖.bat` 会提示找不到 python。
+
+### 三个 bat 各管什么
+
+| 文件 | 作用 |
+|---|---|
+| `安装依赖.bat` | 建 `.venv` 并装 flask / pillow / numpy，走华为云镜像，只跑一次 |
+| `GIF去背景.bat` | 无窗口启动，浏览器自动打开；环境没装会提示你先跑上面那个 |
+| `诊断启动.bat` | 带控制台启动，能看到完整报错，启动失败时用它 |
+
+逻辑与容器版完全一致（同一份代码）。
 
 ---
 
