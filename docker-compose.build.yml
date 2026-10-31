@@ -1,12 +1,15 @@
-# GIF 去背景 —— 免下载源码，一个文件直接部署
+# GIF 去背景 —— 源码构建版（备用）
+#
+# 什么时候用它：
+#   · GHCR 拉不动，又不想折腾代理
+#   · 你自己改了代码，想用改后的版本
 #
 # 用法：
-#   mkdir gifkey && cd gifkey
-#   curl -fsSL https://gitee.com/jxmike/gifkey/raw/main/docker-compose.remote.yml -o docker-compose.yml
-#   docker compose up -d
+#   curl -fsSL https://gitee.com/jxmike/gifkey/raw/main/docker-compose.build.yml -o docker-compose.yml
+#   docker compose up -d          # 第一次会 clone 源码 + 装依赖，1~3 分钟
 #
-# 原理：build.context 指向 Git 仓库地址，Docker 会自己 clone 下来再构建，
-#      所以不需要事先把源码拷到机器上。
+# 原理：build.context 指向 Git 仓库地址，Docker（需 BuildKit / Docker 23+）
+#      会自己 clone 下来再构建，所以不需要事先把源码拷到机器上。
 
 services:
   gifkey:

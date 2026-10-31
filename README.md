@@ -12,12 +12,10 @@
 
 两个站点的代码完全一致，哪个快用哪个：
 
-| 站点 | 地址 |
-|---|---|
-| **Gitee**（国内推荐） | https://gitee.com/jxmike/gifkey |
-| **GitHub** | https://github.com/Mike-0308/gifkey |
-
-下面的所有命令都给了两个站点两套，任选其一即可。
+| 站点 | 代码 | 镜像 |
+|---|---|---|
+| **Gitee**（国内推荐） | https://gitee.com/jxmike/gifkey | —（国内拉 Gitee 源码构建） |
+| **GitHub** | https://github.com/Mike-0308/gifkey | `ghcr.io/mike-0308/gifkey:1.1` |
 
 ---
 
@@ -30,40 +28,63 @@
 mkdir -p /vol1/1000/docker/gifkey && cd /vol1/1000/docker/gifkey
 
 # ② 拉取 compose 文件（Gitee）
-curl -fsSL https://gitee.com/jxmike/gifkey/raw/main/docker-compose.remote.yml -o docker-compose.yml
+curl -fsSL https://gitee.com/jxmike/gifkey/raw/main/docker-compose.yml -o docker-compose.yml
 
 #    GitHub 版（海外或有代理时用这条）
-# curl -fsSL https://raw.githubusercontent.com/Mike-0308/gifkey/main/docker-compose.remote.yml -o docker-compose.yml
+# curl -fsSL https://raw.githubusercontent.com/Mike-0308/gifkey/main/docker-compose.yml -o docker-compose.yml
 
-# ③ 启动（第一次会 clone 源码 + 构建镜像，1~3 分钟）
+# ③ 启动（只拉镜像，几十秒；不用编译、不用装 pip 依赖）
 docker compose up -d
 ```
 
 然后在浏览器打开 `http://NAS的IP:8849`。
 
-**它的原理**：compose 里的 `build.context` 指向 Git 仓库地址，Docker 会自己 `clone` 下来再构建，
-所以你不需要把源码拷到 NAS 上，只需要一个 compose 文件。
-
-> 不想用命令行也可以：fnOS 的「Docker → Compose → 新建项目」里，把下面第二节「方式一」的
-> 完整内容粘进去，点部署就行，效果一样。
+**它的原理**：compose 里写的是 `image: ghcr.io/mike-0308/gifkey:1.1`，
+镜像由 GitHub Actions 在云端构建好（amd64 + arm64 双架构），你的机器只负责下载和运行。
 
 **以后升级**：
 
 ```bash
-cd /vol1/1000/docker/gifkey && docker compose up -d --build
+cd /vol1/1000/docker/gifkey && docker compose pull && docker compose up -d
 ```
 
-会重新拉最新源码构建，`output/` 里的成品不受影响。
+`output/` 里的成品不受影响。
+
+> **拉不下来怎么办**：`ghcr.io` 在国内偶发抽风。见第二节「方式二」，在 NAS 上从源码构建，
+> 或者给 Docker 配个加速代理。
 
 ---
 
 ## 二、完整的 Compose 文件
 
-两种都可用，按你的网络情况选一个。
+### 方式一：镜像版（默认，也就是上面 `curl` 下来的那个）
 
-### 方式一：远程源码构建（推荐，配合上面的一键部署）
+```yaml
+services:
+  gifkey:
+    image: ghcr.io/mike-0308/gifkey:1.1
+    container_name: gifkey
+    restart: unless-stopped
+    ports:
+      # 左边是 NAS 上的端口（打不开就换一个），右边是容器内端口，别改
+      - "8849:8849"
+    volumes:
+      # 成品存到当前目录下的 output/，删容器、换镜像都不会丢
+      - ./output:/app/output
+    environment:
+      - TZ=Asia/Shanghai
+      # 容器内监听端口，与上面 ports 的右边保持一致
+      - GIFKEY_PORT=8849
+    # 300 帧 800×1076 的素材会吃到 2GB 左右内存，别把上限设太小
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 4g
+```
 
-不需要本地有源码，Docker 自己去 Git 拉。**这就是上面 `curl` 下来的那个文件。**
+### 方式二：源码构建（GHCR 拉不动时用，也就是 `docker-compose.build.yml`）
+
+不需要本地有源码，Docker 自己去 Git 拉（需要 Docker 23+ 的 BuildKit）：
 
 ```yaml
 services:
@@ -79,25 +100,20 @@ services:
     container_name: gifkey
     restart: unless-stopped
     ports:
-      # 左边是 NAS 上的端口（打不开就换一个），右边是容器内端口，别改
       - "8849:8849"
     volumes:
-      # 成品存到当前目录下的 output/，删容器、重建镜像都不会丢
       - ./output:/app/output
     environment:
       - TZ=Asia/Shanghai
-      # 容器内监听端口，与上面 ports 的右边保持一致
       - GIFKEY_PORT=8849
-    # 300 帧 800×1076 的素材会吃到 2GB 左右内存，别把上限设太小
-    # deploy:
-    #   resources:
-    #     limits:
-    #       memory: 4g
 ```
 
-### 方式二：本地目录构建
+```bash
+curl -fsSL https://gitee.com/jxmike/gifkey/raw/main/docker-compose.build.yml -o docker-compose.yml
+docker compose up -d          # 第一次 clone + 装依赖，1~3 分钟
+```
 
-适合把仓库 `git clone` 或下载 zip 到本机的情况，构建时用本地的 `Dockerfile`，不联网拉源码。
+### 方式三：本地目录构建（自己改了代码时用）
 
 ```yaml
 services:
@@ -118,8 +134,6 @@ services:
       - GIFKEY_PORT=8849
 ```
 
-用法：
-
 ```bash
 git clone https://gitee.com/jxmike/gifkey.git    # 或 GitHub 地址
 cd gifkey
@@ -130,12 +144,13 @@ docker compose up -d --build
 
 | 配置项 | 作用 | 要不要改 |
 |---|---|---|
+| `image` | 用的镜像 | 发新版时跟着改 tag，如 `1.2` |
 | `ports` 左边 `8849` | NAS 上对外暴露的端口 | 被占用就改这里，例如 `18849:8849` |
 | `ports` 右边 `8849` | 容器内监听端口 | **别改**，要和 `GIFKEY_PORT` 一致 |
 | `./output:/app/output` | 成品输出目录 | 想换位置就改左边的路径，如 `/vol2/gifkey-out` |
 | `TZ` | 时区，影响输出目录的时间戳命名 | 默认 `Asia/Shanghai` |
 | `restart` | 开机自启 / 崩溃重启 | 默认 `unless-stopped` |
-| `PIP_INDEX` | 构建时用的 pip 源 | 国内留华为云，国外可删 |
+| `PIP_INDEX`（构建时） | 构建时用的 pip 源 | 国内留华为云，国外可删 |
 | `deploy.resources.limits.memory` | 内存上限 | 默认注释掉；要限制就别低于 4G，否则大素材会被 OOM |
 
 `GIFKEY_HOST=0.0.0.0`、`GIFKEY_NO_BROWSER=1`、`GIFKEY_CONTAINER=1` 这三个已经写死在
@@ -143,9 +158,40 @@ docker compose up -d --build
 
 ---
 
-## 三、其它部署方式
+## 三、镜像相关
 
-### 方式 A：离线部署（NAS 不能联网时）
+### 镜像是怎么来的
+
+`Dockerfile` 只是「配方」，镜像得有人构建出来再推到仓库，别人才能 `pull`。
+本项目用 GitHub Actions 自动做这件事（`.github/workflows/docker-image.yml`）：
+
+- 推代码到 `main`（且改到 `app.py` / `keying.py` / `requirements.txt` / `static/` / `Dockerfile`）→ 自动构建
+- 也可以在仓库 **Actions → 构建并推送镜像 → Run workflow** 手动触发
+- 一次产出 `linux/amd64` 和 `linux/arm64` 两个架构，推成两个 tag：`1.1` 和 `latest`
+
+地址：`ghcr.io/mike-0308/gifkey:1.1`
+
+### GHCR 匿名拉不了怎么办
+
+GitHub 上第一次推的镜像默认是**私有**的，匿名 `docker pull` 会 401。两种解法：
+
+**A. 把包改成公开**（一次性操作，推荐）
+
+打开 `https://github.com/users/Mike-0308/packages/container/gifkey/settings`
+→ 滑到底部 **Danger Zone → Change visibility → Public**，确认即可。
+
+**B. 登录后拉**（不想开公开时）
+
+在 GitHub 建 Personal Access Token，只需勾 `read:packages`，然后：
+
+```bash
+echo 你的TOKEN | docker login ghcr.io -u Mike-0308 --password-stdin
+docker compose pull
+```
+
+### 其它部署方式
+
+**离线部署（NAS 不能联网时）**
 
 在任意一台装了 Docker 的机器上（Windows / Mac 装 Docker Desktop 也算）：
 
@@ -161,30 +207,21 @@ docker save gifkey:1.1 | gzip > gifkey-1.1.tar.gz   # 约 90MB
 gunzip -c gifkey-1.1.tar.gz | docker load
 ```
 
-再用上面「方式二」的 compose，**但要把 `build:` 整段删掉**，只留 `image: gifkey:1.1`，
-否则 compose 还会去重新构建。
+compose 里保留 `image: gifkey:1.1`、**不要写 `build:`**，否则还会去重新构建。
 
-### 方式 B：推到镜像仓库（多台机器、给别人用）
+**自己再发一份到别的仓库**（阿里云 ACR 等，国内更快）
 
 ```bash
-# ① GitHub 建 Personal Access Token，勾 write:packages
-echo 你的TOKEN | docker login ghcr.io -u 你的GitHub用户名 --password-stdin
-
-# ② 打标签并推送
-docker tag gifkey:1.1 ghcr.io/你的用户名/gifkey:1.1
-docker push ghcr.io/你的用户名/gifkey:1.1
+docker tag gifkey:1.1 registry.cn-hangzhou.aliyuncs.com/你的命名空间/gifkey:1.1
+docker login registry.cn-hangzhou.aliyuncs.com
+docker push registry.cn-hangzhou.aliyuncs.com/你的命名空间/gifkey:1.1
 ```
-
-然后 compose 里换成 `image: ghcr.io/你的用户名/gifkey:1.1`、删掉 `build:` 段，
-`docker compose pull && docker compose up -d`。
-
-> ⚠️ 国内直连 `ghcr.io` 和 `docker.io` 基本都会超时。要么配代理，要么用阿里云容器镜像服务（ACR，个人版免费）。
 
 ### 镜像里有什么
 
 - 基础 `python:3.12-slim`，依赖 Flask + Pillow + numpy（都是预编译 wheel，不编译）
 - 不需要 ffmpeg、不需要 GPU、不需要显卡驱动
-- 镜像体积约 230MB
+- 压缩后约 90MB，拉下来解开约 230MB
 
 ---
 
@@ -227,8 +264,16 @@ docker push ghcr.io/你的用户名/gifkey:1.1
 **打不开 8849**
 先 `docker compose logs -f` 看容器起来没。健康检查失败通常是端口没对上。
 
+**`docker compose up` 卡在拉镜像 / 报 `denied` 或 `unauthorized`**
+镜像还是私有的，按第三节「GHCR 匿名拉不了怎么办」改成 Public 或登录。
+如果是一直超时，说明 `ghcr.io` 被网络拦了，改用「方式二」源码构建。
+
 **构建时卡在 `git clone` 不动**
-Gitee 或 GitHub 那个地址当前网络拉不通。把 `context` 换成另一个站点，或者改用「方式二」本地目录构建。
+Gitee 或 GitHub 那个地址当前网络拉不通。把 `context` 换成另一个站点，或者改用「方式三」本地目录构建。
+
+**改了代码，镜像没更新**
+Actions 只对 `main` 分支的特定文件变动触发。手动去 Actions 页面点一次 Run workflow。
+另外别忘了升 tag（`1.1` → `1.2`），否则 NAS 上 `pull` 认为还是同一个版本，不会重新下载。
 
 **上传大文件失败**
 默认上限 300MB（`app.py` 里 `MAX_CONTENT_LENGTH`），帧数上限 2000 帧。
@@ -285,9 +330,10 @@ compose 里已设 `TZ=Asia/Shanghai`，文件名按 UTF-8 传输。如果宿主�
 | `app.py` | Flask 服务：上传、任务队列、参数接口、退出 |
 | `keying.py` | 抠像算法与 GIF / WebP 编码（四档压缩都在这） |
 | `static/` | 前端页面 |
-| `Dockerfile` | 容器镜像定义 |
-| `docker-compose.yml` | 本地目录构建用 |
-| `docker-compose.remote.yml` | 远程源码构建用（一键部署拉的就是这个） |
+| `Dockerfile` | 容器镜像定义（镜像的「配方」） |
+| `docker-compose.yml` | **镜像版**，一键部署拉的就是这个 |
+| `docker-compose.build.yml` | 源码构建版，GHCR 拉不动时用 |
+| `.github/workflows/docker-image.yml` | 自动构建并推送镜像到 GHCR |
 | `requirements.txt` | Python 依赖，只有 flask / pillow / numpy |
 | `GIF去背景.bat` | Windows 一键启动 |
 | `安装依赖.bat` | Windows 装依赖 |

@@ -1,24 +1,36 @@
+# GIF 去背景 —— 镜像版（推荐）
+#
+# 用法：
+#   mkdir -p gifkey && cd gifkey
+#   curl -fsSL https://gitee.com/jxmike/gifkey/raw/main/docker-compose.yml -o docker-compose.yml
+#   docker compose up -d
+#
+# 镜像由 GitHub Actions 自动构建，推送到 GitHub 容器仓库（GHCR），
+# 已包含 amd64 / arm64 两个架构，NAS 上只拉不编译，几十秒即可启动。
+
 services:
   gifkey:
-    build:
-      context: .
-      args:
-        # 国内 NAS 直接走镜像源，避免 pip 拉超时
-        PIP_INDEX: https://mirrors.huaweicloud.com/repository/pypi/simple
-    image: gifkey:1.1
+    image: ghcr.io/mike-0308/gifkey:1.1
+
+    # ↓ 如果 GHCR 拉不动（国内偶发），把上面 image 那行换成下面这段，改成在 NAS 上构建：
+    # build:
+    #   context: https://gitee.com/jxmike/gifkey.git#main
+    #   args:
+    #     PIP_INDEX: https://mirrors.huaweicloud.com/repository/pypi/simple
+
     container_name: gifkey
     restart: unless-stopped
     ports:
+      # 左边是 NAS 上的端口（打不开就换一个），右边是容器内端口，别改
       - "8849:8849"
     volumes:
-      # 输出的成品存到宿主机的 ./output，容器重建不丢
+      # 成品存到当前目录下的 output/，删容器、换镜像都不会丢
       - ./output:/app/output
     environment:
       - TZ=Asia/Shanghai
-      # 想换端口就改这里，同时把上面 ports 的左边也改掉
+      # 容器内监听端口，与上面 ports 的右边保持一致
       - GIFKEY_PORT=8849
-    # 大素材（例如 300 帧 800×1076）读进内存要 1GB 上下，
-    # 不要把内存上限设得太小，否则会被 OOM 杀掉
+    # 300 帧 800×1076 的素材会吃到 2GB 左右内存，别把上限设太小
     # deploy:
     #   resources:
     #     limits:

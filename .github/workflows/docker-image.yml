@@ -1,0 +1,65 @@
+name: 构建并推送镜像
+
+# 什么时候触发：
+#   1) 往 main 推代码，且改到了会影响镜像的文件
+#   2) 手动触发（仓库 Actions 页面点 Run workflow）
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app.py"
+      - "keying.py"
+      - "requirements.txt"
+      - "static/**"
+      - "Dockerfile"
+      - ".github/workflows/docker-image.yml"
+  workflow_dispatch:
+
+env:
+  # GHCR 的镜像名必须全小写，所以这里写死；换仓库时改这一行
+  IMAGE_NAME: ghcr.io/mike-0308/gifkey
+  # 发新版改这里，同时改 docker-compose.yml 里的 image: 标签
+  IMAGE_VERSION: "1.1"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 准备 QEMU（构建 arm64 用）
+        uses: docker/setup-qemu-action@v3
+
+      - name: 准备 Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 构建并推送
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          # 同时出 amd64（Intel/AMD NAS）和 arm64（ARM NAS）两个架构
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
+            ${{ env.IMAGE_NAME }}:latest
+          # 构建机在国外，用官方 pypi 源即可；不传 PIP_INDEX 就走 Dockerfile 的默认值
+          # build-args: |
+          #   PIP_INDEX: https://pypi.org/simple
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          labels: |
+            org.opencontainers.image.source=https://github.com/Mike-0308/gifkey
+            org.opencontainers.image.title=GIF 去背景
+            org.opencontainers.image.description=把带纯色背景的 GIF / WebP 抠成透明背景，纯 CPU
