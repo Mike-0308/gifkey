@@ -335,6 +335,28 @@ compose 里已设 `TZ=Asia/Shanghai`，文件名按 UTF-8 传输。如果宿主�
 | `docker-compose.build.yml` | 源码构建版，GHCR 拉不动时用 |
 | `.github/workflows/docker-image.yml` | 自动构建并推送镜像到 GHCR |
 | `requirements.txt` | Python 依赖，只有 flask / pillow / numpy |
+| `LICENSE` | MIT 许可证 |
 | `GIF去背景.bat` | Windows 一键启动 |
 | `安装依赖.bat` | Windows 装依赖 |
 | `诊断启动.bat` | Windows 排障 |
+
+---
+
+## 九、许可
+
+MIT License © 2026 jxmike
+
+你可以自由使用、修改、商用、再分发，唯一要求是保留版权声明和许可证正文。
+
+用到的第三方组件（都兼容 MIT，可以放心一起分发）：
+
+| 组件 | 用途 | 许可证 |
+|---|---|---|
+| Python 3.12 | 运行时 | PSF License |
+| Flask | Web 服务 | BSD-3-Clause |
+| Pillow | GIF / WebP 编码 | MIT-CMU (HPND) |
+| numpy | 像素矩阵运算 | BSD-3-Clause |
+| Debian (slim 基础镜像) | 容器底座 | 各自开源许可 |
+
+本项目**没有**使用任何 GPL / AGPL 组件，所以选 MIT 不会产生传染性义务。
+

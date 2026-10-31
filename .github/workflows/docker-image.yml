@@ -63,3 +63,4 @@ jobs:
             org.opencontainers.image.source=https://github.com/Mike-0308/gifkey
             org.opencontainers.image.title=GIF 去背景
             org.opencontainers.image.description=把带纯色背景的 GIF / WebP 抠成透明背景，纯 CPU
+            org.opencontainers.image.licenses=MIT
