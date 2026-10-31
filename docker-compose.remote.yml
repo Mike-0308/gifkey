@@ -1,0 +1,37 @@
+# GIF 去背景 —— 免下载源码，一个文件直接部署
+#
+# 用法：
+#   mkdir gifkey && cd gifkey
+#   curl -fsSL https://gitee.com/jxmike/gifkey/raw/main/docker-compose.remote.yml -o docker-compose.yml
+#   docker compose up -d
+#
+# 原理：build.context 指向 Git 仓库地址，Docker 会自己 clone 下来再构建，
+#      所以不需要事先把源码拷到机器上。
+
+services:
+  gifkey:
+    build:
+      # 国内用 Gitee（快）。拉不动就换成下面注释里的 GitHub 地址，二选一。
+      context: https://gitee.com/jxmike/gifkey.git#main
+      # context: https://github.com/Mike-0308/gifkey.git#main
+      args:
+        # 构建时走国内 pip 源，避免装依赖超时；国外可以删掉这行用官方源
+        PIP_INDEX: https://mirrors.huaweicloud.com/repository/pypi/simple
+    image: gifkey:1.1
+    container_name: gifkey
+    restart: unless-stopped
+    ports:
+      # 左边是 NAS 上的端口（打不开就换一个），右边是容器内端口，别改
+      - "8849:8849"
+    volumes:
+      # 成品存到当前目录下的 output/，删容器、重建镜像都不会丢
+      - ./output:/app/output
+    environment:
+      - TZ=Asia/Shanghai
+      # 容器内监听端口，与上面 ports 的右边保持一致
+      - GIFKEY_PORT=8849
+    # 300 帧 800×1076 的素材会吃到 2GB 左右内存，别把上限设太小
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 4g
